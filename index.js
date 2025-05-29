@@ -38,6 +38,19 @@ async function translateText(text, targetLang) {
   return res.data.choices[0].message.content;
 }
 
+// 입력 파싱 함수
+function parseSections(text) {
+  const teamMatch = text.match(/팀명:([\s\S]*?)(?=주요 요청사항:|$)/);
+  const mainMatch = text.match(/주요 요청사항:([\s\S]*?)(?=세부 요청사항:|$)/);
+  const detailMatch = text.match(/세부 요청사항:([\s\S]*)/);
+
+  return {
+    team: teamMatch ? teamMatch[1].trim() : '',
+    main: mainMatch ? mainMatch[1].trim() : '',
+    detail: detailMatch ? detailMatch[1].trim() : ''
+  };
+}
+
 // 메시지 이벤트 처리
 app.event('message', async ({ event, client, context, say }) => {
   try {
@@ -45,19 +58,16 @@ app.event('message', async ({ event, client, context, say }) => {
 
     const text = event.text || '';
     const files = event.files || [];
-    const lines = text.split('\n');
-    const teamName = lines[0] || '-';
-    const logoRequest = lines[1] || '-';
-    const pantsRequest = lines[2] || '-';
+    const { team, main, detail } = parseSections(text);
 
     // 번역 대상 언어 결정
     const targetLang = isKorean(text) ? "English" : "Korean";
 
-    // 각 줄 번역
-    const [teamNameT, logoRequestT, pantsRequestT] = await Promise.all([
-      translateText(teamName, targetLang),
-      translateText(logoRequest, targetLang),
-      translateText(pantsRequest, targetLang)
+    // 각 섹션 번역 (줄바꿈 포함)
+    const [teamT, mainT, detailT] = await Promise.all([
+      translateText(team, targetLang),
+      translateText(main, targetLang),
+      translateText(detail, targetLang)
     ]);
 
     // 카드형 Block Kit 메시지 생성
@@ -66,7 +76,24 @@ app.event('message', async ({ event, client, context, say }) => {
         type: "section",
         text: {
           type: "mrkdwn",
-          text: `*팀명:* ${teamNameT}\n*로고 요청사항:* ${logoRequestT}\n*바지 요청사항:* ${pantsRequestT}`
+          text: `*팀명:*
+${teamT}`
+        }
+      },
+      {
+        type: "section",
+        text: {
+          type: "mrkdwn",
+          text: `*주요 요청사항:*
+${mainT}`
+        }
+      },
+      {
+        type: "section",
+        text: {
+          type: "mrkdwn",
+          text: `*세부 요청사항:*
+${detailT}`
         }
       },
       ...files.map(file => ({
@@ -93,7 +120,7 @@ app.event('message', async ({ event, client, context, say }) => {
       channel: event.channel,
       thread_ts: event.ts, // 원본 메시지 스레드에 응답
       blocks,
-      text: `${teamNameT} / ${logoRequestT} / ${pantsRequestT}`,
+      text: `${teamT} / ${mainT} / ${detailT}`,
       token: context.botToken
     });
 
