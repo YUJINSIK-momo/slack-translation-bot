@@ -38,7 +38,7 @@ async function translateText(text, targetLang) {
   return res.data.choices[0].message.content;
 }
 
-// 개선된 입력 파싱 함수 (각 섹션이 비어 있어도 카드 양식 유지)
+// 개선된 입력 파싱 함수 (라벨 뒤 같은 줄 텍스트도 포함)
 function parseSections(text) {
   const lines = text.split('\n');
   let team = '', main = '', detail = '';
@@ -51,10 +51,10 @@ function parseSections(text) {
       team = trimmed.replace(/^팀명:/, '').trim();
     } else if (/^주요 요청사항:/.test(trimmed)) {
       current = 'main';
-      main = '';
+      main = trimmed.replace(/^주요 요청사항:/, '').trim();
     } else if (/^세부 요청사항:/.test(trimmed)) {
       current = 'detail';
-      detail = '';
+      detail = trimmed.replace(/^세부 요청사항:/, '').trim();
     } else if (current === 'main') {
       main += (main ? '\n' : '') + trimmed;
     } else if (current === 'detail') {
@@ -95,8 +95,8 @@ app.event('message', async ({ event, client, context, say }) => {
     const header = parseHeader(text);
     const { team, main, detail } = parseSections(text.replace(/^\[.*?\]\s*/,'').trim());
 
-    // 양식 체크: 세 항목이 모두 있을 때만 카드, 아니면 전체 번역만
-    const isForm = team && main && detail;
+    // 양식 체크: 세 항목 중 하나라도 있으면 카드, 모두 비어 있으면 전체 번역만
+    const isForm = team !== '' || main !== '' || detail !== '';
     const targetLang = isKorean(text) ? "English" : "Korean";
 
     if (isForm) {
