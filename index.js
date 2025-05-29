@@ -38,17 +38,30 @@ async function translateText(text, targetLang) {
   return res.data.choices[0].message.content;
 }
 
-// 입력 파싱 함수
+// 개선된 입력 파싱 함수 (공백/들여쓰기 무시)
 function parseSections(text) {
-  const teamMatch = text.match(/팀명:([\s\S]*?)(?=주요 요청사항:|$)/);
-  const mainMatch = text.match(/주요 요청사항:([\s\S]*?)(?=세부 요청사항:|$)/);
-  const detailMatch = text.match(/세부 요청사항:([\s\S]*)/);
+  const lines = text.split('\n');
+  let team = '', main = '', detail = '';
+  let current = null;
 
-  return {
-    team: teamMatch ? teamMatch[1].trim() : '',
-    main: mainMatch ? mainMatch[1].trim() : '',
-    detail: detailMatch ? detailMatch[1].trim() : ''
-  };
+  for (let line of lines) {
+    const trimmed = line.trim();
+    if (/^팀명:/.test(trimmed)) {
+      current = 'team';
+      team += trimmed.replace(/^팀명:/, '').trim();
+    } else if (/^주요 요청사항:/.test(trimmed)) {
+      current = 'main';
+      main += trimmed.replace(/^주요 요청사항:/, '').trim();
+    } else if (/^세부 요청사항:/.test(trimmed)) {
+      current = 'detail';
+      detail += trimmed.replace(/^세부 요청사항:/, '').trim();
+    } else if (trimmed) {
+      if (current === 'team') team += (team ? '\n' : '') + trimmed;
+      else if (current === 'main') main += (main ? '\n' : '') + trimmed;
+      else if (current === 'detail') detail += (detail ? '\n' : '') + trimmed;
+    }
+  }
+  return { team: team.trim(), main: main.trim(), detail: detail.trim() };
 }
 
 // 메시지 이벤트 처리
@@ -70,36 +83,34 @@ app.event('message', async ({ event, client, context, say }) => {
       translateText(detail, targetLang)
     ]);
 
-    // 카드형 Block Kit 메시지 생성
+    // 카드형 Block Kit 메시지 생성 (UI 개선)
     const blocks = [
       {
-        type: "section",
-        text: {
-          type: "mrkdwn",
-          text: `*팀명:*
-${teamT}`
-        }
+        type: "header",
+        text: { type: "plain_text", text: `⚽ Team Name: ${teamT}` }
       },
+      { type: "divider" },
       {
         type: "section",
         text: {
           type: "mrkdwn",
-          text: `*주요 요청사항:*
-${mainT}`
+          text: `*Main Requests:*
+${mainT.split('\n').map(line => `• ${line}`).join('\n')}`
         }
       },
+      { type: "divider" },
       {
         type: "section",
         text: {
           type: "mrkdwn",
-          text: `*세부 요청사항:*
-${detailT}`
+          text: `*Detailed Requests:*
+${detailT.split('\n').map(line => `• ${line}`).join('\n')}`
         }
       },
       ...files.map(file => ({
         type: "image",
         image_url: file.url_private,
-        alt_text: "첨부 이미지"
+        alt_text: "Attached Image"
       })),
       {
         type: "actions",
