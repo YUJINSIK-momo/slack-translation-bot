@@ -49,12 +49,12 @@ function parseSections(text) {
     if (/^팀명:/.test(trimmed)) {
       current = 'team';
       team = trimmed.replace(/^팀명:/, '').trim();
-    } else if (/^주요 요청사항:/.test(trimmed)) {
+    } else if (/^디자인 요청사항:/.test(trimmed)) {
       current = 'main';
-      main = trimmed.replace(/^주요 요청사항:/, '').trim();
-    } else if (/^세부 요청사항:/.test(trimmed)) {
+      main = trimmed.replace(/^디자인 요청사항:/, '').trim();
+    } else if (/^이미지 요청사항:/.test(trimmed)) {
       current = 'detail';
-      detail = trimmed.replace(/^세부 요청사항:/, '').trim();
+      detail = trimmed.replace(/^이미지 요청사항:/, '').trim();
     } else if (current === 'main') {
       main += (main ? '\n' : '') + trimmed;
     } else if (current === 'detail') {
@@ -92,8 +92,10 @@ app.event('message', async ({ event, client, context, say }) => {
 
     const text = event.text || '';
     const files = event.files || [];
-    const header = parseHeader(text);
-    const { team, main, detail } = parseSections(text.replace(/^\[.*?\]\s*/,'').trim());
+    // 헤더([신규], [수정] 등) 제거 후 남은 텍스트의 첫 줄이 빈 줄이면 삭제
+    let bodyText = text.replace(/^\[.*?\]\s*/, '');
+    if (bodyText.startsWith('\n')) bodyText = bodyText.slice(1);
+    const { team, main, detail } = parseSections(bodyText.trim());
 
     // 양식 체크: 세 항목 중 하나라도 있으면 카드, 모두 비어 있으면 전체 번역만
     const isForm = team !== '' || main !== '' || detail !== '';
@@ -113,10 +115,10 @@ app.event('message', async ({ event, client, context, say }) => {
 
       // 카드형 Block Kit 메시지 생성 (UI 개선, 버튼 제거)
       const blocks = [
-        ...(header ? [
+        ...(parseHeader(text) ? [
           {
             type: "header",
-            text: { type: "plain_text", text: `${header}` }
+            text: { type: "plain_text", text: `${parseHeader(text)}` }
           },
           {
             type: "header",
@@ -157,7 +159,7 @@ ${detailT.split('\n').map(line => `• ${line}`).join('\n')}`
         channel: event.channel,
         thread_ts: event.ts, // 원본 메시지 스레드에 응답
         blocks,
-        text: `${header ? header + ' ' : ''}Team Name: ${team} / ${mainT} / ${detailT}`,
+        text: `${parseHeader(text) ? parseHeader(text) + ' ' : ''}Team Name: ${team} / ${mainT} / ${detailT}`,
         token: context.botToken
       });
     } else {
