@@ -38,7 +38,7 @@ async function translateText(text, targetLang) {
   return res.data.choices[0].message.content;
 }
 
-// 개선된 입력 파싱 함수 (공백/들여쓰기 무시)
+// 개선된 입력 파싱 함수 (각 섹션이 비어 있어도 카드 양식 유지)
 function parseSections(text) {
   const lines = text.split('\n');
   let team = '', main = '', detail = '';
@@ -48,17 +48,17 @@ function parseSections(text) {
     const trimmed = line.trim();
     if (/^팀명:/.test(trimmed)) {
       current = 'team';
-      team += trimmed.replace(/^팀명:/, '').trim();
+      team = trimmed.replace(/^팀명:/, '').trim();
     } else if (/^주요 요청사항:/.test(trimmed)) {
       current = 'main';
-      main += trimmed.replace(/^주요 요청사항:/, '').trim();
+      main = '';
     } else if (/^세부 요청사항:/.test(trimmed)) {
       current = 'detail';
-      detail += trimmed.replace(/^세부 요청사항:/, '').trim();
-    } else if (trimmed) {
-      if (current === 'team') team += (team ? '\n' : '') + trimmed;
-      else if (current === 'main') main += (main ? '\n' : '') + trimmed;
-      else if (current === 'detail') detail += (detail ? '\n' : '') + trimmed;
+      detail = '';
+    } else if (current === 'main') {
+      main += (main ? '\n' : '') + trimmed;
+    } else if (current === 'detail') {
+      detail += (detail ? '\n' : '') + trimmed;
     }
   }
   return { team: team.trim(), main: main.trim(), detail: detail.trim() };
