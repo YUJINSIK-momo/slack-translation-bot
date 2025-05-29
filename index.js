@@ -64,6 +64,27 @@ function parseSections(text) {
   return { team: team.trim(), main: main.trim(), detail: detail.trim() };
 }
 
+// [신규], [수정] 감지 및 영어 변환 함수
+function parseHeader(text) {
+  const firstLine = text.split('\n')[0].trim();
+  if (firstLine === '[신규]') return '[NEW]';
+  if (firstLine === '[수정]') return '[EDIT]';
+  return '';
+}
+
+// 숫자만 있는 줄은 번역하지 않고, 나머지만 번역하는 함수
+async function translateLinesPreserveNumbers(lines, targetLang) {
+  return Promise.all(
+    lines.map(async (line) => {
+      if (/^\d+$/.test(line.trim())) {
+        return line;
+      } else {
+        return await translateText(line, targetLang);
+      }
+    })
+  );
+}
+
 // 메시지 이벤트 처리
 app.event('message', async ({ event, client, context, say }) => {
   try {
@@ -71,7 +92,8 @@ app.event('message', async ({ event, client, context, say }) => {
 
     const text = event.text || '';
     const files = event.files || [];
-    const { team, main, detail } = parseSections(text);
+    const header = parseHeader(text);
+    const { team, main, detail } = parseSections(text.replace(/^\[.*?\]\s*/,'').trim());
 
     // 양식 체크: 세 항목이 모두 있을 때만 카드, 아니면 전체 번역만
     const isForm = team && main && detail;
@@ -79,17 +101,25 @@ app.event('message', async ({ event, client, context, say }) => {
 
     if (isForm) {
       // 팀명은 번역하지 않고 그대로 사용
-      const [mainT, detailT] = await Promise.all([
-        translateText(main, targetLang),
-        translateText(detail, targetLang)
+      // 주요/세부 요청사항 각 줄별로 숫자만 있는 줄은 번역하지 않음
+      const mainLines = main.split('\n');
+      const detailLines = detail.split('\n');
+      const [mainTArr, detailTArr] = await Promise.all([
+        translateLinesPreserveNumbers(mainLines, targetLang),
+        translateLinesPreserveNumbers(detailLines, targetLang)
       ]);
+      const mainT = mainTArr.join('\n');
+      const detailT = detailTArr.join('\n');
 
       // 카드형 Block Kit 메시지 생성 (UI 개선, 버튼 제거)
       const blocks = [
-        {
+        ...(header ? [{
+          type: "header",
+          text: { type: "plain_text", text: `${header} ⚽ Team Name: ${team}` }
+        }] : [{
           type: "header",
           text: { type: "plain_text", text: `⚽ Team Name: ${team}` }
-        },
+        }]),
         { type: "divider" },
         {
           type: "section",
@@ -119,7 +149,7 @@ ${detailT.split('\n').map(line => `• ${line}`).join('\n')}`
         channel: event.channel,
         thread_ts: event.ts, // 원본 메시지 스레드에 응답
         blocks,
-        text: `Team Name: ${team} / ${mainT} / ${detailT}`,
+        text: `${header ? header + ' ' : ''}Team Name: ${team} / ${mainT} / ${detailT}`,
         token: context.botToken
       });
     } else {
