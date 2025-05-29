@@ -113,13 +113,21 @@ app.event('message', async ({ event, client, context, say }) => {
 
       // 카드형 Block Kit 메시지 생성 (UI 개선, 버튼 제거)
       const blocks = [
-        ...(header ? [{
-          type: "header",
-          text: { type: "plain_text", text: `${header} ⚽ Team Name: ${team}` }
-        }] : [{
-          type: "header",
-          text: { type: "plain_text", text: `⚽ Team Name: ${team}` }
-        }]),
+        ...(header ? [
+          {
+            type: "header",
+            text: { type: "plain_text", text: `${header}` }
+          },
+          {
+            type: "header",
+            text: { type: "plain_text", text: `⚽ Team Name: ${team}` }
+          }
+        ] : [
+          {
+            type: "header",
+            text: { type: "plain_text", text: `⚽ Team Name: ${team}` }
+          }
+        ]),
         { type: "divider" },
         {
           type: "section",
