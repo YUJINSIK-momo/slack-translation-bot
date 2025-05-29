@@ -73,68 +73,65 @@ app.event('message', async ({ event, client, context, say }) => {
     const files = event.files || [];
     const { team, main, detail } = parseSections(text);
 
-    // 번역 대상 언어 결정
+    // 양식 체크: 세 항목이 모두 있을 때만 카드, 아니면 전체 번역만
+    const isForm = team && main && detail;
     const targetLang = isKorean(text) ? "English" : "Korean";
 
-    // 각 섹션 번역 (줄바꿈 포함)
-    const [teamT, mainT, detailT] = await Promise.all([
-      translateText(team, targetLang),
-      translateText(main, targetLang),
-      translateText(detail, targetLang)
-    ]);
+    if (isForm) {
+      // 팀명은 번역하지 않고 그대로 사용
+      const [mainT, detailT] = await Promise.all([
+        translateText(main, targetLang),
+        translateText(detail, targetLang)
+      ]);
 
-    // 카드형 Block Kit 메시지 생성 (UI 개선)
-    const blocks = [
-      {
-        type: "header",
-        text: { type: "plain_text", text: `⚽ Team Name: ${teamT}` }
-      },
-      { type: "divider" },
-      {
-        type: "section",
-        text: {
-          type: "mrkdwn",
-          text: `*Main Requests:*
+      // 카드형 Block Kit 메시지 생성 (UI 개선, 버튼 제거)
+      const blocks = [
+        {
+          type: "header",
+          text: { type: "plain_text", text: `⚽ Team Name: ${team}` }
+        },
+        { type: "divider" },
+        {
+          type: "section",
+          text: {
+            type: "mrkdwn",
+            text: `*Main Requests:*
 ${mainT.split('\n').map(line => `• ${line}`).join('\n')}`
-        }
-      },
-      { type: "divider" },
-      {
-        type: "section",
-        text: {
-          type: "mrkdwn",
-          text: `*Detailed Requests:*
-${detailT.split('\n').map(line => `• ${line}`).join('\n')}`
-        }
-      },
-      ...files.map(file => ({
-        type: "image",
-        image_url: file.url_private,
-        alt_text: "Attached Image"
-      })),
-      {
-        type: "actions",
-        elements: [
-          {
-            type: "button",
-            text: {
-              type: "plain_text",
-              text: "디자인 확인! 👀"
-            },
-            action_id: "confirm_design"
           }
-        ]
-      }
-    ];
+        },
+        { type: "divider" },
+        {
+          type: "section",
+          text: {
+            type: "mrkdwn",
+            text: `*Detailed Requests:*
+${detailT.split('\n').map(line => `• ${line}`).join('\n')}`
+          }
+        },
+        ...files.map(file => ({
+          type: "image",
+          image_url: file.url_private,
+          alt_text: "Attached Image"
+        }))
+      ];
 
-    await client.chat.postMessage({
-      channel: event.channel,
-      thread_ts: event.ts, // 원본 메시지 스레드에 응답
-      blocks,
-      text: `${teamT} / ${mainT} / ${detailT}`,
-      token: context.botToken
-    });
-
+      await client.chat.postMessage({
+        channel: event.channel,
+        thread_ts: event.ts, // 원본 메시지 스레드에 응답
+        blocks,
+        text: `Team Name: ${team} / ${mainT} / ${detailT}`,
+        token: context.botToken
+      });
+    } else {
+      // 양식이 아니면 전체 메시지 번역만
+      const translated = await translateText(text, targetLang);
+      await client.chat.postMessage({
+        channel: event.channel,
+        thread_ts: event.ts,
+        text: translated,
+        token: context.botToken
+      });
+    }
   } catch (error) {
     console.error('오류 발생:', error);
   }
