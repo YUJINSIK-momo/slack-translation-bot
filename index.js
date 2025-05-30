@@ -18,6 +18,20 @@ function isKorean(text) {
   return /[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/.test(text);
 }
 
+// 특정 단어 감지 및 고정 응답 함수
+function checkFixedResponse(text) {
+  const fixedResponses = {
+    '유진식': '유진식을테스트로입력한거지만고정으로나오게해드리겠습니다.'
+  };
+  
+  for (const [keyword, response] of Object.entries(fixedResponses)) {
+    if (text.includes(keyword)) {
+      return response;
+    }
+  }
+  return null;
+}
+
 // OpenAI 번역 호출 함수
 async function translateText(text, targetLang) {
   const res = await axios.post(
@@ -67,8 +81,8 @@ function parseSections(text) {
 // [신규], [수정] 감지 및 영어 변환 함수
 function parseHeader(text) {
   const firstLine = text.split('\n')[0].trim();
-  if (firstLine === '[신규]') return '[NEW]';
-  if (firstLine === '[수정]') return '[EDIT]';
+  if (firstLine === '【신규】') return '【NEW】';
+  if (firstLine === '【수정】') return '【EDIT】';
   return '';
 }
 
@@ -92,6 +106,19 @@ app.event('message', async ({ event, client, context, say }) => {
     if (event.subtype === 'bot_message') return; // 무한 루프 방지
 
     const text = event.text || '';
+    
+    // 고정 응답 체크
+    const fixedResponse = checkFixedResponse(text);
+    if (fixedResponse) {
+      await client.chat.postMessage({
+        channel: event.channel,
+        thread_ts: event.ts,
+        text: fixedResponse,
+        token: context.botToken
+      });
+      return;
+    }
+
     const files = event.files || [];
     // 헤더([신규], [수정] 등) 제거 후 남은 텍스트의 첫 줄이 빈 줄이면 삭제
     let bodyText = text.replace(/^\[.*?\]\s*/, '');
@@ -101,6 +128,16 @@ app.event('message', async ({ event, client, context, say }) => {
     // 양식 체크: 세 항목 중 하나라도 있으면 카드, 모두 비어 있으면 전체 번역만
     const isForm = team !== '' || main !== '' || detail !== '';
     const targetLang = isKorean(text) ? "English" : "Korean";
+
+    // 양식이면 "확인전" 리액션 추가
+    if (isForm) {
+      await client.reactions.add({
+        channel: event.channel,
+        timestamp: event.ts,
+        name: 'eyes', // 👀 이모지
+        token: context.botToken
+      });
+    }
 
     if (isForm) {
       // 팀명은 번역하지 않고 그대로 사용
@@ -181,6 +218,23 @@ ${detailList.length > 0 ? detailList.map(line => `• ${line}`).join('\n') : ''}
 // 버튼 클릭 인터랙션 처리
 app.action('confirm_design', async ({ ack, body, client, context }) => {
   await ack();
+  
+  // "확인전" 리액션 제거
+  await client.reactions.remove({
+    channel: body.channel.id,
+    timestamp: body.message.ts,
+    name: 'eyes',
+    token: context.botToken
+  });
+
+  // "확인완료" 리액션 추가
+  await client.reactions.add({
+    channel: body.channel.id,
+    timestamp: body.message.ts,
+    name: 'white_check_mark', // ✅ 이모지
+    token: context.botToken
+  });
+
   await client.chat.postMessage({
     channel: body.channel.id,
     thread_ts: body.message.ts,
