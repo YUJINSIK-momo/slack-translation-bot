@@ -256,9 +256,10 @@ app.event('message', async ({ event, client, context, say }) => {
         // 상태 강조 블록 (초기값: Pending Review)
         {
           type: "section",
+          block_id: "status_section",
           text: {
             type: "mrkdwn",
-            text: `*현재 상태:*
+            text: `*Status:*
 *👀 Pending Review*`
           }
         },
@@ -287,18 +288,7 @@ app.event('message', async ({ event, client, context, say }) => {
       if (process.env.ARCHIVE_CHANNEL_ID) {
         await client.chat.postMessage({
           channel: process.env.ARCHIVE_CHANNEL_ID,
-          blocks: [
-            ...blocks,
-            {
-              type: "context",
-              elements: [
-                {
-                  type: "mrkdwn",
-                  text: `*Original Message:* <${result.ts}|View in thread>`
-                }
-              ]
-            }
-          ],
+          blocks: blocks,
           text: `${parseHeader(text) ? parseHeader(text) + ' ' : ''}Team Name: ${team} / ${main} / ${detail}`,
           token: context.botToken
         });
@@ -318,6 +308,14 @@ app.event('message', async ({ event, client, context, say }) => {
   }
 });
 
+// 각 상태 버튼 핸들러에서 block_id로 상태 section을 찾아 업데이트
+function updateStatusBlock(blocks, statusText) {
+  const statusBlock = blocks.find(b => b.block_id === 'status_section');
+  if (statusBlock) {
+    statusBlock.text.text = statusText;
+  }
+}
+
 // 버튼 클릭 인터랙션 처리
 app.action('status_pending', async ({ ack, body, client, context }) => {
   await ack();
@@ -326,8 +324,7 @@ app.action('status_pending', async ({ ack, body, client, context }) => {
   console.log('작성자 user:', body.message.user);
   try {
     const blocks = body.message.blocks;
-    // 상태 section 블록은 actions 다음(=blocks.length-2)에 위치
-    blocks[blocks.length-2].text.text = `*현재 상태:*\n*👀 Pending Review*`;
+    updateStatusBlock(blocks, `*Status:*\n*👀 Pending Review*`);
     blocks[blocks.length-1].elements[0].text = `*작업자:* <@${body.user.id}>`;
     await client.chat.update({ channel: body.channel.id, ts: body.message.ts, blocks: blocks, token: context.botToken });
   } catch (error) {
@@ -342,7 +339,7 @@ app.action('status_in_progress', async ({ ack, body, client, context }) => {
   console.log('작성자 user:', body.message.user);
   try {
     const blocks = body.message.blocks;
-    blocks[blocks.length-2].text.text = `*현재 상태:*\n*⚡ In Progress*`;
+    updateStatusBlock(blocks, `*Status:*\n*⚡ In Progress*`);
     blocks[blocks.length-1].elements[0].text = `*작업자:* <@${body.user.id}>`;
     await client.chat.update({ channel: body.channel.id, ts: body.message.ts, blocks: blocks, token: context.botToken });
   } catch (error) {
@@ -357,7 +354,7 @@ app.action('status_completed', async ({ ack, body, client, context }) => {
   console.log('작성자 user:', body.message.user);
   try {
     const blocks = body.message.blocks;
-    blocks[blocks.length-2].text.text = `*현재 상태:*\n*✅ Completed*`;
+    updateStatusBlock(blocks, `*Status:*\n*✅ Completed*`);
     blocks[blocks.length-1].elements[0].text = `*작업자:* <@${body.user.id}>`;
     await client.chat.update({ channel: body.channel.id, ts: body.message.ts, blocks: blocks, token: context.botToken });
   } catch (error) {
@@ -372,7 +369,7 @@ app.action('status_needs_revision', async ({ ack, body, client, context }) => {
   console.log('작성자 user:', body.message.user);
   try {
     const blocks = body.message.blocks;
-    blocks[blocks.length-2].text.text = `*현재 상태:*\n*⚠️ Needs Revision*`;
+    updateStatusBlock(blocks, `*Status:*\n*⚠️ Needs Revision*`);
     blocks[blocks.length-1].elements[0].text = `*작업자:* <@${body.user.id}>`;
     await client.chat.update({ channel: body.channel.id, ts: body.message.ts, blocks: blocks, token: context.botToken });
   } catch (error) {
