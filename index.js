@@ -118,7 +118,7 @@ app.event('message', async ({ event, client, context, say }) => {
     const isForm = team !== '' || main !== '' || detail !== '';
     const targetLang = isKorean(text) ? "English" : "Korean";
 
-    // 고정 응답 체크 및 리액션 추가
+    // 고정 응답 체크
     const fixedResponse = checkFixedResponse(text);
     if (fixedResponse) {
       // 고정 응답 메시지 전송
@@ -128,16 +128,6 @@ app.event('message', async ({ event, client, context, say }) => {
         text: fixedResponse,
         token: context.botToken
       });
-
-      // 양식이면 "검토중" 리액션 추가
-      if (isForm) {
-        await client.reactions.add({
-          channel: event.channel,
-          timestamp: event.ts,
-          name: 'hourglass_flowing_sand', // ⏳ 이모지
-          token: context.botToken
-        });
-      }
     }
 
     if (isForm) {
@@ -216,32 +206,55 @@ ${detailList.length > 0 ? detailList.map(line => `• ${line}`).join('\n') : ''}
   }
 });
 
-// 버튼 클릭 인터랙션 처리
-app.action('confirm_design', async ({ ack, body, client, context }) => {
-  await ack();
-  
-  // "검토중" 리액션 제거
-  await client.reactions.remove({
-    channel: body.channel.id,
-    timestamp: body.message.ts,
-    name: 'hourglass_flowing_sand',
-    token: context.botToken
-  });
+// 리액션 이벤트 처리
+app.event('reaction_added', async ({ event, client, context }) => {
+  try {
+    // ⏳ 리액션이 추가되면
+    if (event.reaction === 'hourglass_flowing_sand') {
+      // 원본 메시지 가져오기
+      const result = await client.conversations.history({
+        channel: event.item.channel,
+        latest: event.item.ts,
+        limit: 1,
+        token: context.botToken
+      });
 
-  // "완료" 리액션 추가
-  await client.reactions.add({
-    channel: body.channel.id,
-    timestamp: body.message.ts,
-    name: 'heavy_check_mark', // ✔️ 이모지
-    token: context.botToken
-  });
+      if (result.messages && result.messages.length > 0) {
+        const message = result.messages[0];
+        // 양식인지 확인
+        const { team, main, detail } = parseSections(message.text || '');
+        const isForm = team !== '' || main !== '' || detail !== '';
 
-  await client.chat.postMessage({
-    channel: body.channel.id,
-    thread_ts: body.message.ts,
-    text: '디자인 확인 완료! ✔️',
-    token: context.botToken
-  });
+        if (isForm) {
+          // ⏳ 리액션 제거
+          await client.reactions.remove({
+            channel: event.item.channel,
+            timestamp: event.item.ts,
+            name: 'hourglass_flowing_sand',
+            token: context.botToken
+          });
+
+          // ✔️ 리액션 추가
+          await client.reactions.add({
+            channel: event.item.channel,
+            timestamp: event.item.ts,
+            name: 'heavy_check_mark',
+            token: context.botToken
+          });
+
+          // 완료 메시지 전송
+          await client.chat.postMessage({
+            channel: event.item.channel,
+            thread_ts: event.item.ts,
+            text: '디자인 확인 완료! ✔️',
+            token: context.botToken
+          });
+        }
+      }
+    }
+  } catch (error) {
+    console.error('리액션 처리 중 오류 발생:', error);
+  }
 });
 
 // Slack URL verification 핸들러 추가
