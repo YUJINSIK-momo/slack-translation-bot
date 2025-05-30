@@ -304,202 +304,94 @@ app.event('message', async ({ event, client, context, say }) => {
 // 버튼 클릭 인터랙션 처리
 app.action('status_pending', async ({ ack, body, client, context }) => {
   await ack();
-  
-  // 기존 리액션 제거
-  await client.reactions.remove({
-    channel: body.channel.id,
-    timestamp: body.message.ts,
-    name: 'hourglass_flowing_sand',
-    token: context.botToken
-  });
-  await client.reactions.remove({
-    channel: body.channel.id,
-    timestamp: body.message.ts,
-    name: 'zap',
-    token: context.botToken
-  });
-  await client.reactions.remove({
-    channel: body.channel.id,
-    timestamp: body.message.ts,
-    name: 'white_check_mark',
-    token: context.botToken
-  });
-  await client.reactions.remove({
-    channel: body.channel.id,
-    timestamp: body.message.ts,
-    name: 'warning',
-    token: context.botToken
-  });
-
-  // "확인 전" 리액션 추가
-  await client.reactions.add({
-    channel: body.channel.id,
-    timestamp: body.message.ts,
-    name: 'eyes',
-    token: context.botToken
-  });
-
-  // 메시지 업데이트
-  const blocks = body.message.blocks;
-  const statusBlock = blocks[blocks.length - 1];
-  statusBlock.elements[0].text = `*Status:* 👀 Pending Review | *Requested by:* ${statusBlock.elements[0].text.split('|')[1]}`;
-
-  await client.chat.update({
-    channel: body.channel.id,
-    ts: body.message.ts,
-    blocks: blocks,
-    token: context.botToken
-  });
+  console.log('[status_pending] action triggered');
+  console.log('channel:', body.channel.id, 'ts:', body.message.ts);
+  try {
+    // 기존 리액션 제거
+    await client.reactions.remove({ channel: body.channel.id, timestamp: body.message.ts, name: 'hourglass_flowing_sand', token: context.botToken });
+    await client.reactions.remove({ channel: body.channel.id, timestamp: body.message.ts, name: 'zap', token: context.botToken });
+    await client.reactions.remove({ channel: body.channel.id, timestamp: body.message.ts, name: 'white_check_mark', token: context.botToken });
+    await client.reactions.remove({ channel: body.channel.id, timestamp: body.message.ts, name: 'warning', token: context.botToken });
+    // "확인 전" 리액션 추가
+    await client.reactions.add({ channel: body.channel.id, timestamp: body.message.ts, name: 'eyes', token: context.botToken });
+    console.log('[status_pending] Reaction added!');
+    // 메시지 업데이트
+    const blocks = body.message.blocks;
+    const statusBlock = blocks[blocks.length - 1];
+    statusBlock.elements[0].text = `*Status:* 👀 Pending Review | *Requested by:* ${statusBlock.elements[0].text.split('|')[1]}`;
+    await client.chat.update({ channel: body.channel.id, ts: body.message.ts, blocks: blocks, token: context.botToken });
+  } catch (error) {
+    console.error('[status_pending] 리액션 추가 중 오류:', error.data || error);
+  }
 });
 
 app.action('status_in_progress', async ({ ack, body, client, context }) => {
   await ack();
-  
-  // 기존 리액션 제거
-  await client.reactions.remove({
-    channel: body.channel.id,
-    timestamp: body.message.ts,
-    name: 'eyes',
-    token: context.botToken
-  });
-  await client.reactions.remove({
-    channel: body.channel.id,
-    timestamp: body.message.ts,
-    name: 'zap',
-    token: context.botToken
-  });
-  await client.reactions.remove({
-    channel: body.channel.id,
-    timestamp: body.message.ts,
-    name: 'white_check_mark',
-    token: context.botToken
-  });
-  await client.reactions.remove({
-    channel: body.channel.id,
-    timestamp: body.message.ts,
-    name: 'warning',
-    token: context.botToken
-  });
-
-  // "작업 중" 리액션 추가
-  await client.reactions.add({
-    channel: body.channel.id,
-    timestamp: body.message.ts,
-    name: 'hourglass_flowing_sand',
-    token: context.botToken
-  });
-
-  // 메시지 업데이트
-  const blocks = body.message.blocks;
-  const statusBlock = blocks[blocks.length - 1];
-  statusBlock.elements[0].text = `*Status:* ⚡ In Progress | *Requested by:* ${statusBlock.elements[0].text.split('|')[1]}`;
-
-  await client.chat.update({
-    channel: body.channel.id,
-    ts: body.message.ts,
-    blocks: blocks,
-    token: context.botToken
-  });
+  console.log('[status_in_progress] action triggered');
+  console.log('channel:', body.channel.id, 'ts:', body.message.ts);
+  try {
+    // 기존 리액션 제거
+    await client.reactions.remove({ channel: body.channel.id, timestamp: body.message.ts, name: 'eyes', token: context.botToken });
+    await client.reactions.remove({ channel: body.channel.id, timestamp: body.message.ts, name: 'zap', token: context.botToken });
+    await client.reactions.remove({ channel: body.channel.id, timestamp: body.message.ts, name: 'white_check_mark', token: context.botToken });
+    await client.reactions.remove({ channel: body.channel.id, timestamp: body.message.ts, name: 'warning', token: context.botToken });
+    // "작업 중" 리액션 추가
+    await client.reactions.add({ channel: body.channel.id, timestamp: body.message.ts, name: 'hourglass_flowing_sand', token: context.botToken });
+    console.log('[status_in_progress] Reaction added!');
+    // 메시지 업데이트
+    const blocks = body.message.blocks;
+    const statusBlock = blocks[blocks.length - 1];
+    statusBlock.elements[0].text = `*Status:* ⚡ In Progress | *Requested by:* ${statusBlock.elements[0].text.split('|')[1]}`;
+    await client.chat.update({ channel: body.channel.id, ts: body.message.ts, blocks: blocks, token: context.botToken });
+  } catch (error) {
+    console.error('[status_in_progress] 리액션 추가 중 오류:', error.data || error);
+  }
 });
 
 app.action('status_completed', async ({ ack, body, client, context }) => {
   await ack();
-  
-  // 기존 리액션 제거
-  await client.reactions.remove({
-    channel: body.channel.id,
-    timestamp: body.message.ts,
-    name: 'eyes',
-    token: context.botToken
-  });
-  await client.reactions.remove({
-    channel: body.channel.id,
-    timestamp: body.message.ts,
-    name: 'hourglass_flowing_sand',
-    token: context.botToken
-  });
-  await client.reactions.remove({
-    channel: body.channel.id,
-    timestamp: body.message.ts,
-    name: 'zap',
-    token: context.botToken
-  });
-  await client.reactions.remove({
-    channel: body.channel.id,
-    timestamp: body.message.ts,
-    name: 'warning',
-    token: context.botToken
-  });
-
-  // "작업 완료" 리액션 추가
-  await client.reactions.add({
-    channel: body.channel.id,
-    timestamp: body.message.ts,
-    name: 'white_check_mark',
-    token: context.botToken
-  });
-
-  // 메시지 업데이트
-  const blocks = body.message.blocks;
-  const statusBlock = blocks[blocks.length - 1];
-  statusBlock.elements[0].text = `*Status:* ✅ Completed | *Requested by:* ${statusBlock.elements[0].text.split('|')[1]}`;
-
-  await client.chat.update({
-    channel: body.channel.id,
-    ts: body.message.ts,
-    blocks: blocks,
-    token: context.botToken
-  });
+  console.log('[status_completed] action triggered');
+  console.log('channel:', body.channel.id, 'ts:', body.message.ts);
+  try {
+    // 기존 리액션 제거
+    await client.reactions.remove({ channel: body.channel.id, timestamp: body.message.ts, name: 'eyes', token: context.botToken });
+    await client.reactions.remove({ channel: body.channel.id, timestamp: body.message.ts, name: 'hourglass_flowing_sand', token: context.botToken });
+    await client.reactions.remove({ channel: body.channel.id, timestamp: body.message.ts, name: 'zap', token: context.botToken });
+    await client.reactions.remove({ channel: body.channel.id, timestamp: body.message.ts, name: 'warning', token: context.botToken });
+    // "작업 완료" 리액션 추가
+    await client.reactions.add({ channel: body.channel.id, timestamp: body.message.ts, name: 'white_check_mark', token: context.botToken });
+    console.log('[status_completed] Reaction added!');
+    // 메시지 업데이트
+    const blocks = body.message.blocks;
+    const statusBlock = blocks[blocks.length - 1];
+    statusBlock.elements[0].text = `*Status:* ✅ Completed | *Requested by:* ${statusBlock.elements[0].text.split('|')[1]}`;
+    await client.chat.update({ channel: body.channel.id, ts: body.message.ts, blocks: blocks, token: context.botToken });
+  } catch (error) {
+    console.error('[status_completed] 리액션 추가 중 오류:', error.data || error);
+  }
 });
 
 app.action('status_needs_revision', async ({ ack, body, client, context }) => {
   await ack();
-  
-  // 기존 리액션 제거
-  await client.reactions.remove({
-    channel: body.channel.id,
-    timestamp: body.message.ts,
-    name: 'eyes',
-    token: context.botToken
-  });
-  await client.reactions.remove({
-    channel: body.channel.id,
-    timestamp: body.message.ts,
-    name: 'hourglass_flowing_sand',
-    token: context.botToken
-  });
-  await client.reactions.remove({
-    channel: body.channel.id,
-    timestamp: body.message.ts,
-    name: 'white_check_mark',
-    token: context.botToken
-  });
-  await client.reactions.remove({
-    channel: body.channel.id,
-    timestamp: body.message.ts,
-    name: 'zap',
-    token: context.botToken
-  });
-
-  // "수정 필요" 리액션 추가
-  await client.reactions.add({
-    channel: body.channel.id,
-    timestamp: body.message.ts,
-    name: 'warning',
-    token: context.botToken
-  });
-
-  // 메시지 업데이트
-  const blocks = body.message.blocks;
-  const statusBlock = blocks[blocks.length - 1];
-  statusBlock.elements[0].text = `*Status:* ⚠️ Needs Revision | *Requested by:* ${statusBlock.elements[0].text.split('|')[1]}`;
-
-  await client.chat.update({
-    channel: body.channel.id,
-    ts: body.message.ts,
-    blocks: blocks,
-    token: context.botToken
-  });
+  console.log('[status_needs_revision] action triggered');
+  console.log('channel:', body.channel.id, 'ts:', body.message.ts);
+  try {
+    // 기존 리액션 제거
+    await client.reactions.remove({ channel: body.channel.id, timestamp: body.message.ts, name: 'eyes', token: context.botToken });
+    await client.reactions.remove({ channel: body.channel.id, timestamp: body.message.ts, name: 'hourglass_flowing_sand', token: context.botToken });
+    await client.reactions.remove({ channel: body.channel.id, timestamp: body.message.ts, name: 'white_check_mark', token: context.botToken });
+    await client.reactions.remove({ channel: body.channel.id, timestamp: body.message.ts, name: 'zap', token: context.botToken });
+    // "수정 필요" 리액션 추가
+    await client.reactions.add({ channel: body.channel.id, timestamp: body.message.ts, name: 'warning', token: context.botToken });
+    console.log('[status_needs_revision] Reaction added!');
+    // 메시지 업데이트
+    const blocks = body.message.blocks;
+    const statusBlock = blocks[blocks.length - 1];
+    statusBlock.elements[0].text = `*Status:* ⚠️ Needs Revision | *Requested by:* ${statusBlock.elements[0].text.split('|')[1]}`;
+    await client.chat.update({ channel: body.channel.id, ts: body.message.ts, blocks: blocks, token: context.botToken });
+  } catch (error) {
+    console.error('[status_needs_revision] 리액션 추가 중 오류:', error.data || error);
+  }
 });
 
 // Slack URL verification 핸들러 추가
