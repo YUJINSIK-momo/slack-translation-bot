@@ -306,6 +306,7 @@ app.action('status_pending', async ({ ack, body, client, context }) => {
   await ack();
   console.log('[status_pending] action triggered');
   console.log('channel:', body.channel.id, 'ts:', body.message.ts);
+  console.log('작성자 user:', body.message.user);
   try {
     // 기존 리액션 제거
     await client.reactions.remove({ channel: body.channel.id, timestamp: body.message.ts, name: 'hourglass_flowing_sand', token: context.botToken });
@@ -329,6 +330,7 @@ app.action('status_in_progress', async ({ ack, body, client, context }) => {
   await ack();
   console.log('[status_in_progress] action triggered');
   console.log('channel:', body.channel.id, 'ts:', body.message.ts);
+  console.log('작성자 user:', body.message.user);
   try {
     // 기존 리액션 제거
     await client.reactions.remove({ channel: body.channel.id, timestamp: body.message.ts, name: 'eyes', token: context.botToken });
@@ -352,6 +354,7 @@ app.action('status_completed', async ({ ack, body, client, context }) => {
   await ack();
   console.log('[status_completed] action triggered');
   console.log('channel:', body.channel.id, 'ts:', body.message.ts);
+  console.log('작성자 user:', body.message.user);
   try {
     // 기존 리액션 제거
     await client.reactions.remove({ channel: body.channel.id, timestamp: body.message.ts, name: 'eyes', token: context.botToken });
@@ -375,6 +378,7 @@ app.action('status_needs_revision', async ({ ack, body, client, context }) => {
   await ack();
   console.log('[status_needs_revision] action triggered');
   console.log('channel:', body.channel.id, 'ts:', body.message.ts);
+  console.log('작성자 user:', body.message.user);
   try {
     // 기존 리액션 제거
     await client.reactions.remove({ channel: body.channel.id, timestamp: body.message.ts, name: 'eyes', token: context.botToken });
