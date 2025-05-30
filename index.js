@@ -18,18 +18,9 @@ function isKorean(text) {
   return /[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/.test(text);
 }
 
-// 특정 단어 감지 및 고정 응답 함수
-function checkFixedResponse(text) {
-  const fixedResponses = {
-    '유진식': '유진식을테스트로입력한거지만고정으로나오게해드리겠습니다.'
-  };
-  
-  for (const [keyword, response] of Object.entries(fixedResponses)) {
-    if (text.includes(keyword)) {
-      return response;
-    }
-  }
-  return null;
+// 특정 단어를 빨간색으로 강조하는 함수
+function highlightWord(text, word) {
+  return text.replace(new RegExp(word, 'g'), `*${word}*`);
 }
 
 // OpenAI 번역 호출 함수
@@ -92,7 +83,7 @@ async function translateLinesPreserveNumbers(lines, targetLang) {
   return Promise.all(
     filtered.map(async (line) => {
       // 숫자만 있는 줄이거나 특정 단어가 포함된 줄은 그대로 유지
-      if (/^\d+$/.test(line.trim()) || checkFixedResponse(line)) {
+      if (/^\d+$/.test(line.trim()) || line.includes('유진식')) {
         return line;
       } else {
         return await translateText(line, targetLang);
@@ -118,18 +109,6 @@ app.event('message', async ({ event, client, context, say }) => {
     const isForm = team !== '' || main !== '' || detail !== '';
     const targetLang = isKorean(text) ? "English" : "Korean";
 
-    // 고정 응답 체크
-    const fixedResponse = checkFixedResponse(text);
-    if (fixedResponse) {
-      // 고정 응답 메시지 전송
-      await client.chat.postMessage({
-        channel: event.channel,
-        thread_ts: event.ts,
-        text: fixedResponse,
-        token: context.botToken
-      });
-    }
-
     if (isForm) {
       // 팀명은 번역하지 않고 그대로 사용
       // 주요/세부 요청사항 각 줄별로 숫자만 있는 줄은 번역하지 않음, 빈 줄은 제외
@@ -142,30 +121,66 @@ app.event('message', async ({ event, client, context, say }) => {
       const mainList = mainTArr.filter(line => line.trim() !== '');
       const detailList = detailTArr.filter(line => line.trim() !== '');
 
-      // 카드형 Block Kit 메시지 생성
+      // 특정 단어가 포함된 줄은 번역하지 않고 빨간색으로 강조
+      const highlightedMainList = mainList.map(line => {
+        if (line.includes('유진식')) {
+          return highlightWord(line, '유진식');
+        }
+        return line;
+      });
+
+      const highlightedDetailList = detailList.map(line => {
+        if (line.includes('유진식')) {
+          return highlightWord(line, '유진식');
+        }
+        return line;
+      });
+
+      // 현재 시간을 한국 시간으로 변환
+      const now = new Date();
+      const koreaTime = new Date(now.getTime() + (9 * 60 * 60 * 1000));
+      const formattedDate = koreaTime.toLocaleString('ko-KR', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+
+      // 카드형 Block Kit 메시지 생성 (UI 개선)
       const blocks = [
-        ...(parseHeader(text) ? [
-          {
-            type: "header",
-            text: { type: "plain_text", text: `${parseHeader(text)}` }
-          },
-          {
-            type: "header",
-            text: { type: "plain_text", text: `⚽ Team Name: ${team}` }
+        {
+          type: "header",
+          text: {
+            type: "plain_text",
+            text: `${parseHeader(text) || '【NEW】'} Design Request Form`,
+            emoji: true
           }
-        ] : [
-          {
-            type: "header",
-            text: { type: "plain_text", text: `⚽ Team Name: ${team}` }
-          }
-        ]),
+        },
+        {
+          type: "section",
+          fields: [
+            {
+              type: "mrkdwn",
+              text: `*🏆 Team Name*\n${team}`
+            },
+            {
+              type: "mrkdwn",
+              text: `*📅 Request Date*\n${formattedDate}`
+            }
+          ]
+        },
         { type: "divider" },
         {
           type: "section",
           text: {
             type: "mrkdwn",
-            text: `*Design Requests:*
-${mainList.length > 0 ? mainList.map(line => `• ${line}`).join('\n') : ''}`
+            text: `*🎨 Design Requests*\n${highlightedMainList.length > 0 ? highlightedMainList.map(line => `• ${line}`).join('\n') : '_No design requests_'}`
+          },
+          accessory: {
+            type: "image",
+            image_url: "https://api.slack.com/img/blocks/bkb_template_images/design.png",
+            alt_text: "Design icon"
           }
         },
         { type: "divider" },
@@ -173,24 +188,83 @@ ${mainList.length > 0 ? mainList.map(line => `• ${line}`).join('\n') : ''}`
           type: "section",
           text: {
             type: "mrkdwn",
-            text: `*Image Requests:*
-${detailList.length > 0 ? detailList.map(line => `• ${line}`).join('\n') : ''}`
+            text: `*🖼️ Image Requests*\n${highlightedDetailList.length > 0 ? highlightedDetailList.map(line => `• ${line}`).join('\n') : '_No image requests_'}`
+          },
+          accessory: {
+            type: "image",
+            image_url: "https://api.slack.com/img/blocks/bkb_template_images/image.png",
+            alt_text: "Image icon"
           }
         },
         ...files.map(file => ({
           type: "image",
           image_url: file.url_private,
           alt_text: "Attached Image"
-        }))
+        })),
+        {
+          type: "actions",
+          elements: [
+            {
+              type: "button",
+              text: {
+                type: "plain_text",
+                text: "✅ Confirm",
+                emoji: true
+              },
+              style: "primary",
+              action_id: "confirm_design"
+            },
+            {
+              type: "button",
+              text: {
+                type: "plain_text",
+                text: "📝 Edit",
+                emoji: true
+              },
+              action_id: "edit_design"
+            }
+          ]
+        },
+        {
+          type: "context",
+          elements: [
+            {
+              type: "mrkdwn",
+              text: `*Status:* ⏳ Pending Review | *Requested by:* <@${event.user}>`
+            }
+          ]
+        }
       ];
 
-      await client.chat.postMessage({
+      // 메인 채널에 메시지 전송
+      const result = await client.chat.postMessage({
         channel: event.channel,
         thread_ts: event.ts,
         blocks,
         text: `${parseHeader(text) ? parseHeader(text) + ' ' : ''}Team Name: ${team} / ${main} / ${detail}`,
         token: context.botToken
       });
+
+      // 아카이브 채널에 저장 (환경 변수에서 채널 ID를 가져옴)
+      if (process.env.ARCHIVE_CHANNEL_ID) {
+        await client.chat.postMessage({
+          channel: process.env.ARCHIVE_CHANNEL_ID,
+          blocks: [
+            ...blocks,
+            {
+              type: "context",
+              elements: [
+                {
+                  type: "mrkdwn",
+                  text: `*Original Message:* <${result.ts}|View in thread>`
+                }
+              ]
+            }
+          ],
+          text: `${parseHeader(text) ? parseHeader(text) + ' ' : ''}Team Name: ${team} / ${main} / ${detail}`,
+          token: context.botToken
+        });
+      }
     } else {
       // 양식이 아니면 전체 메시지 번역만
       const translated = await translateText(text, targetLang);
@@ -204,6 +278,58 @@ ${detailList.length > 0 ? detailList.map(line => `• ${line}`).join('\n') : ''}
   } catch (error) {
     console.error('오류 발생:', error);
   }
+});
+
+// 버튼 클릭 인터랙션 처리
+app.action('confirm_design', async ({ ack, body, client, context }) => {
+  await ack();
+  
+  // "검토중" 리액션 제거
+  await client.reactions.remove({
+    channel: body.channel.id,
+    timestamp: body.message.ts,
+    name: 'hourglass_flowing_sand',
+    token: context.botToken
+  });
+
+  // "완료" 리액션 추가
+  await client.reactions.add({
+    channel: body.channel.id,
+    timestamp: body.message.ts,
+    name: 'heavy_check_mark',
+    token: context.botToken
+  });
+
+  // 메시지 업데이트
+  const blocks = body.message.blocks;
+  const statusBlock = blocks[blocks.length - 1];
+  statusBlock.elements[0].text = `*Status:* ✅ Completed | *Requested by:* ${statusBlock.elements[0].text.split('|')[1]}`;
+
+  await client.chat.update({
+    channel: body.channel.id,
+    ts: body.message.ts,
+    blocks: blocks,
+    token: context.botToken
+  });
+
+  await client.chat.postMessage({
+    channel: body.channel.id,
+    thread_ts: body.message.ts,
+    text: '디자인 확인 완료! ✔️',
+    token: context.botToken
+  });
+});
+
+// 수정 버튼 클릭 처리
+app.action('edit_design', async ({ ack, body, client, context }) => {
+  await ack();
+  
+  await client.chat.postMessage({
+    channel: body.channel.id,
+    thread_ts: body.message.ts,
+    text: '수정 요청이 접수되었습니다. 수정사항을 입력해주세요.',
+    token: context.botToken
+  });
 });
 
 // 리액션 이벤트 처리
