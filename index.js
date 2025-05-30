@@ -91,7 +91,8 @@ async function translateLinesPreserveNumbers(lines, targetLang) {
   const filtered = lines.filter(line => line.trim() !== '');
   return Promise.all(
     filtered.map(async (line) => {
-      if (/^\d+$/.test(line.trim())) {
+      // 숫자만 있는 줄이거나 특정 단어가 포함된 줄은 그대로 유지
+      if (/^\d+$/.test(line.trim()) || checkFixedResponse(line)) {
         return line;
       } else {
         return await translateText(line, targetLang);
@@ -106,20 +107,8 @@ app.event('message', async ({ event, client, context, say }) => {
     if (event.subtype === 'bot_message') return; // 무한 루프 방지
 
     const text = event.text || '';
-    
-    // 고정 응답 체크
-    const fixedResponse = checkFixedResponse(text);
-    if (fixedResponse) {
-      await client.chat.postMessage({
-        channel: event.channel,
-        thread_ts: event.ts,
-        text: fixedResponse,
-        token: context.botToken
-      });
-      return;
-    }
-
     const files = event.files || [];
+    
     // 헤더([신규], [수정] 등) 제거 후 남은 텍스트의 첫 줄이 빈 줄이면 삭제
     let bodyText = text.replace(/^\[.*?\]\s*/, '');
     if (bodyText.startsWith('\n')) bodyText = bodyText.slice(1);
@@ -129,14 +118,26 @@ app.event('message', async ({ event, client, context, say }) => {
     const isForm = team !== '' || main !== '' || detail !== '';
     const targetLang = isKorean(text) ? "English" : "Korean";
 
-    // 양식이면 "확인전" 리액션 추가
-    if (isForm) {
-      await client.reactions.add({
+    // 고정 응답 체크 및 리액션 추가
+    const fixedResponse = checkFixedResponse(text);
+    if (fixedResponse) {
+      // 고정 응답 메시지 전송
+      await client.chat.postMessage({
         channel: event.channel,
-        timestamp: event.ts,
-        name: 'eyes', // 👀 이모지
+        thread_ts: event.ts,
+        text: fixedResponse,
         token: context.botToken
       });
+
+      // 양식이면 "검토중" 리액션 추가
+      if (isForm) {
+        await client.reactions.add({
+          channel: event.channel,
+          timestamp: event.ts,
+          name: 'hourglass_flowing_sand', // ⏳ 이모지
+          token: context.botToken
+        });
+      }
     }
 
     if (isForm) {
@@ -151,7 +152,7 @@ app.event('message', async ({ event, client, context, say }) => {
       const mainList = mainTArr.filter(line => line.trim() !== '');
       const detailList = detailTArr.filter(line => line.trim() !== '');
 
-      // 카드형 Block Kit 메시지 생성 (UI 개선, 버튼 제거)
+      // 카드형 Block Kit 메시지 생성
       const blocks = [
         ...(parseHeader(text) ? [
           {
@@ -195,7 +196,7 @@ ${detailList.length > 0 ? detailList.map(line => `• ${line}`).join('\n') : ''}
 
       await client.chat.postMessage({
         channel: event.channel,
-        thread_ts: event.ts, // 원본 메시지 스레드에 응답
+        thread_ts: event.ts,
         blocks,
         text: `${parseHeader(text) ? parseHeader(text) + ' ' : ''}Team Name: ${team} / ${main} / ${detail}`,
         token: context.botToken
@@ -219,26 +220,26 @@ ${detailList.length > 0 ? detailList.map(line => `• ${line}`).join('\n') : ''}
 app.action('confirm_design', async ({ ack, body, client, context }) => {
   await ack();
   
-  // "확인전" 리액션 제거
+  // "검토중" 리액션 제거
   await client.reactions.remove({
     channel: body.channel.id,
     timestamp: body.message.ts,
-    name: 'eyes',
+    name: 'hourglass_flowing_sand',
     token: context.botToken
   });
 
-  // "확인완료" 리액션 추가
+  // "완료" 리액션 추가
   await client.reactions.add({
     channel: body.channel.id,
     timestamp: body.message.ts,
-    name: 'white_check_mark', // ✅ 이모지
+    name: 'heavy_check_mark', // ✔️ 이모지
     token: context.botToken
   });
 
   await client.chat.postMessage({
     channel: body.channel.id,
     thread_ts: body.message.ts,
-    text: '디자인 확인 완료! ✅',
+    text: '디자인 확인 완료! ✔️',
     token: context.botToken
   });
 });
