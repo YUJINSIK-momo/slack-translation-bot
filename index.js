@@ -319,7 +319,7 @@ app.action('status_pending', async ({ ack, body, client, context }) => {
     // 메시지 업데이트
     const blocks = body.message.blocks;
     const statusBlock = blocks[blocks.length - 1];
-    statusBlock.elements[0].text = `*Status:* 👀 Pending Review | *Requested by:* ${statusBlock.elements[0].text.split('|')[1]}`;
+    statusBlock.elements[0].text = `*Status:* �� Pending Review | *작업자:* <@${body.user.id}>`;
     await client.chat.update({ channel: body.channel.id, ts: body.message.ts, blocks: blocks, token: context.botToken });
   } catch (error) {
     console.error('[status_pending] 리액션 추가 중 오류:', error.data || error);
@@ -343,7 +343,7 @@ app.action('status_in_progress', async ({ ack, body, client, context }) => {
     // 메시지 업데이트
     const blocks = body.message.blocks;
     const statusBlock = blocks[blocks.length - 1];
-    statusBlock.elements[0].text = `*Status:* ⚡ In Progress | *Requested by:* ${statusBlock.elements[0].text.split('|')[1]}`;
+    statusBlock.elements[0].text = `*Status:* ⚡ In Progress | *작업자:* <@${body.user.id}>`;
     await client.chat.update({ channel: body.channel.id, ts: body.message.ts, blocks: blocks, token: context.botToken });
   } catch (error) {
     console.error('[status_in_progress] 리액션 추가 중 오류:', error.data || error);
@@ -367,7 +367,7 @@ app.action('status_completed', async ({ ack, body, client, context }) => {
     // 메시지 업데이트
     const blocks = body.message.blocks;
     const statusBlock = blocks[blocks.length - 1];
-    statusBlock.elements[0].text = `*Status:* ✅ Completed | *Requested by:* ${statusBlock.elements[0].text.split('|')[1]}`;
+    statusBlock.elements[0].text = `*Status:* ✅ Completed | *작업자:* <@${body.user.id}>`;
     await client.chat.update({ channel: body.channel.id, ts: body.message.ts, blocks: blocks, token: context.botToken });
   } catch (error) {
     console.error('[status_completed] 리액션 추가 중 오류:', error.data || error);
@@ -391,7 +391,7 @@ app.action('status_needs_revision', async ({ ack, body, client, context }) => {
     // 메시지 업데이트
     const blocks = body.message.blocks;
     const statusBlock = blocks[blocks.length - 1];
-    statusBlock.elements[0].text = `*Status:* ⚠️ Needs Revision | *Requested by:* ${statusBlock.elements[0].text.split('|')[1]}`;
+    statusBlock.elements[0].text = `*Status:* ⚠️ Needs Revision | *작업자:* <@${body.user.id}>`;
     await client.chat.update({ channel: body.channel.id, ts: body.message.ts, blocks: blocks, token: context.botToken });
   } catch (error) {
     console.error('[status_needs_revision] 리액션 추가 중 오류:', error.data || error);
