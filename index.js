@@ -95,7 +95,14 @@ async function translateLinesPreserveNumbers(lines, targetLang) {
 // 메시지 이벤트 처리
 app.event('message', async ({ event, client, context, say }) => {
   try {
-    if (event.subtype === 'bot_message') return; // 무한 루프 방지
+    // 번역과 무관한 이벤트는 무시
+    if (
+      event.subtype === 'bot_message' ||
+      event.subtype === 'message_changed' ||
+      event.subtype === 'message_deleted' ||
+      event.subtype === 'file_share' ||
+      !event.text
+    ) return;
 
     const text = event.text || '';
     const files = event.files || [];
@@ -245,15 +252,6 @@ app.event('message', async ({ event, client, context, say }) => {
               action_id: "status_needs_revision"
             }
           ]
-        },
-        {
-          type: "context",
-          elements: [
-            {
-              type: "mrkdwn",
-              text: `*Status:* ⏳ Pending Review | *Requested by:* <@${event.user}>`
-            }
-          ]
         }
       ];
 
@@ -311,7 +309,7 @@ app.action('status_pending', async ({ ack, body, client, context }) => {
     // 메시지 업데이트 (리액션 코드 제거)
     const blocks = body.message.blocks;
     const statusBlock = blocks[blocks.length - 1];
-    statusBlock.elements[0].text = `*Status:* 👀 Pending Review | *작업자:* <@${body.user.id}>`;
+    statusBlock.elements[0].text = `*Status:* 👀 확인 전 (Pending Review) | *작업자:* <@${body.user.id}>`;
     await client.chat.update({ channel: body.channel.id, ts: body.message.ts, blocks: blocks, token: context.botToken });
   } catch (error) {
     console.error('[status_pending] 상태 변경 중 오류:', error.data || error);
@@ -327,7 +325,7 @@ app.action('status_in_progress', async ({ ack, body, client, context }) => {
     // 메시지 업데이트 (리액션 코드 제거)
     const blocks = body.message.blocks;
     const statusBlock = blocks[blocks.length - 1];
-    statusBlock.elements[0].text = `*Status:* ⚡ In Progress | *작업자:* <@${body.user.id}>`;
+    statusBlock.elements[0].text = `*Status:* ⚡ 작업 중 (In Progress) | *작업자:* <@${body.user.id}>`;
     await client.chat.update({ channel: body.channel.id, ts: body.message.ts, blocks: blocks, token: context.botToken });
   } catch (error) {
     console.error('[status_in_progress] 상태 변경 중 오류:', error.data || error);
@@ -343,7 +341,7 @@ app.action('status_completed', async ({ ack, body, client, context }) => {
     // 메시지 업데이트 (리액션 코드 제거)
     const blocks = body.message.blocks;
     const statusBlock = blocks[blocks.length - 1];
-    statusBlock.elements[0].text = `*Status:* ✅ Completed | *작업자:* <@${body.user.id}>`;
+    statusBlock.elements[0].text = `*Status:* ✅ 작업 완료 (Completed) | *작업자:* <@${body.user.id}>`;
     await client.chat.update({ channel: body.channel.id, ts: body.message.ts, blocks: blocks, token: context.botToken });
   } catch (error) {
     console.error('[status_completed] 상태 변경 중 오류:', error.data || error);
@@ -359,7 +357,7 @@ app.action('status_needs_revision', async ({ ack, body, client, context }) => {
     // 메시지 업데이트 (리액션 코드 제거)
     const blocks = body.message.blocks;
     const statusBlock = blocks[blocks.length - 1];
-    statusBlock.elements[0].text = `*Status:* ⚠️ Needs Revision | *작업자:* <@${body.user.id}>`;
+    statusBlock.elements[0].text = `*Status:* ⚠️ 수정 필요 (Needs Revision) | *작업자:* <@${body.user.id}>`;
     await client.chat.update({ channel: body.channel.id, ts: body.message.ts, blocks: blocks, token: context.botToken });
   } catch (error) {
     console.error('[status_needs_revision] 상태 변경 중 오류:', error.data || error);
