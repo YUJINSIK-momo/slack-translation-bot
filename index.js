@@ -103,11 +103,11 @@ app.event('message', async ({ event, client, context, say }) => {
       event.subtype === 'bot_message' ||
       event.subtype === 'message_changed' ||
       event.subtype === 'message_deleted' ||
-      event.subtype === 'file_share' ||
       !event.text
     ) return;
 
     console.log('메시지 수신:', event.text); // 디버깅 로그
+    console.log('이벤트 서브타입:', event.subtype); // 디버깅 로그 추가
 
     const text = event.text || '';
     const files = event.files || [];
@@ -121,6 +121,7 @@ app.event('message', async ({ event, client, context, say }) => {
     
     const { team, main, detail } = parseSections(bodyText);
     console.log('파싱된 양식:', { team, main, detail }); // 디버깅 로그
+    console.log('첨부 파일:', files); // 디버깅 로그 추가
 
     // 양식 체크: 세 항목 중 하나라도 있으면 카드, 모두 비어 있으면 전체 번역만
     const isForm = team !== '' || main !== '' || detail !== '';
