@@ -43,6 +43,14 @@ async function translateText(text, targetLang) {
   return res.data.choices[0].message.content;
 }
 
+// [신규], [수정] 감지 및 영어 변환 함수
+function parseHeader(text) {
+  const firstLine = text.split('\n')[0].trim();
+  if (firstLine === '【신규】') return '【NEW】';
+  if (firstLine === '【수정】') return '【EDIT】';
+  return '';
+}
+
 // 개선된 입력 파싱 함수 (라벨 뒤 같은 줄 텍스트도 포함)
 function parseSections(text) {
   const lines = text.split('\n');
@@ -51,30 +59,25 @@ function parseSections(text) {
 
   for (let line of lines) {
     const trimmed = line.trim();
-    if (/^팀명:/.test(trimmed)) {
+    // 헤더 라인은 건너뛰기
+    if (trimmed === '【신규】' || trimmed === '【수정】') continue;
+    
+    if (trimmed.startsWith('팀명:')) {
       current = 'team';
       team = trimmed.replace(/^팀명:/, '').trim();
-    } else if (/^디자인 요청사항:/.test(trimmed)) {
+    } else if (trimmed.startsWith('디자인 요청사항:')) {
       current = 'main';
       main = trimmed.replace(/^디자인 요청사항:/, '').trim();
-    } else if (/^이미지 요청사항:/.test(trimmed)) {
+    } else if (trimmed.startsWith('이미지 요청사항:')) {
       current = 'detail';
       detail = trimmed.replace(/^이미지 요청사항:/, '').trim();
-    } else if (current === 'main') {
+    } else if (current === 'main' && trimmed) {
       main += (main ? '\n' : '') + trimmed;
-    } else if (current === 'detail') {
+    } else if (current === 'detail' && trimmed) {
       detail += (detail ? '\n' : '') + trimmed;
     }
   }
   return { team: team.trim(), main: main.trim(), detail: detail.trim() };
-}
-
-// [신규], [수정] 감지 및 영어 변환 함수
-function parseHeader(text) {
-  const firstLine = text.split('\n')[0].trim();
-  if (firstLine === '【신규】') return '【NEW】';
-  if (firstLine === '【수정】') return '【EDIT】';
-  return '';
 }
 
 // 번역 전, 빈 줄은 제외하고 숫자만 있는 줄은 그대로, 나머지만 번역
@@ -104,17 +107,27 @@ app.event('message', async ({ event, client, context, say }) => {
       !event.text
     ) return;
 
+    console.log('메시지 수신:', event.text); // 디버깅 로그
+
     const text = event.text || '';
     const files = event.files || [];
     
-    // 헤더([신규], [수정] 등) 제거 후 남은 텍스트의 첫 줄이 빈 줄이면 삭제
-    let bodyText = text.replace(/^\[.*?\]\s*/, '');
-    if (bodyText.startsWith('\n')) bodyText = bodyText.slice(1);
-    const { team, main, detail } = parseSections(bodyText.trim());
+    // 헤더 제거 로직 수정
+    let bodyText = text;
+    const header = parseHeader(text);
+    if (header) {
+      bodyText = text.split('\n').slice(1).join('\n').trim();
+    }
+    
+    const { team, main, detail } = parseSections(bodyText);
+    console.log('파싱된 양식:', { team, main, detail }); // 디버깅 로그
 
     // 양식 체크: 세 항목 중 하나라도 있으면 카드, 모두 비어 있으면 전체 번역만
     const isForm = team !== '' || main !== '' || detail !== '';
+    console.log('양식 여부:', isForm); // 디버깅 로그
+
     const targetLang = isKorean(text) ? "English" : "Korean";
+    console.log('번역 방향:', targetLang); // 디버깅 로그
 
     if (isForm) {
       // 팀명은 번역하지 않고 그대로 사용
@@ -160,7 +173,7 @@ app.event('message', async ({ event, client, context, say }) => {
           type: "header",
           text: {
             type: "plain_text",
-            text: `${parseHeader(text) || '【NEW】'} Design Request Form`,
+            text: `${header || '【NEW】'} Design Request Form`,
             emoji: true
           }
         },
@@ -280,7 +293,7 @@ app.event('message', async ({ event, client, context, say }) => {
         channel: event.channel,
         thread_ts: event.ts,
         blocks,
-        text: `${parseHeader(text) ? parseHeader(text) + ' ' : ''}Team Name: ${team} / ${main} / ${detail}`,
+        text: `${header ? header + ' ' : ''}Team Name: ${team} / ${main} / ${detail}`,
         token: context.botToken
       });
 
@@ -289,7 +302,7 @@ app.event('message', async ({ event, client, context, say }) => {
         await client.chat.postMessage({
           channel: process.env.ARCHIVE_CHANNEL_ID,
           blocks: blocks,
-          text: `${parseHeader(text) ? parseHeader(text) + ' ' : ''}Team Name: ${team} / ${main} / ${detail}`,
+          text: `${header ? header + ' ' : ''}Team Name: ${team} / ${main} / ${detail}`,
           token: context.botToken
         });
       }
