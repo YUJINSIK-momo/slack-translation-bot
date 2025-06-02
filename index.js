@@ -326,7 +326,13 @@ app.action('status_pending', async ({ ack, body, client, context }) => {
     const blocks = body.message.blocks;
     updateStatusBlock(blocks, `*Status:*\n*👀 Pending Review*`);
     blocks[blocks.length-1].elements[0].text = `*작업자:* <@${body.user.id}>`;
-    await client.chat.update({ channel: body.channel.id, ts: body.message.ts, blocks: blocks, token: context.botToken });
+    await client.chat.update({ 
+      channel: body.channel.id, 
+      ts: body.message.ts, 
+      blocks: blocks, 
+      text: "Design Request Form - Status: Pending Review",
+      token: context.botToken 
+    });
   } catch (error) {
     console.error('[status_pending] 상태 변경 중 오류:', error.data || error);
   }
@@ -341,7 +347,13 @@ app.action('status_in_progress', async ({ ack, body, client, context }) => {
     const blocks = body.message.blocks;
     updateStatusBlock(blocks, `*Status:*\n*⚡ In Progress*`);
     blocks[blocks.length-1].elements[0].text = `*작업자:* <@${body.user.id}>`;
-    await client.chat.update({ channel: body.channel.id, ts: body.message.ts, blocks: blocks, token: context.botToken });
+    await client.chat.update({ 
+      channel: body.channel.id, 
+      ts: body.message.ts, 
+      blocks: blocks, 
+      text: "Design Request Form - Status: In Progress",
+      token: context.botToken 
+    });
   } catch (error) {
     console.error('[status_in_progress] 상태 변경 중 오류:', error.data || error);
   }
@@ -356,7 +368,13 @@ app.action('status_completed', async ({ ack, body, client, context }) => {
     const blocks = body.message.blocks;
     updateStatusBlock(blocks, `*Status:*\n*✅ Completed*`);
     blocks[blocks.length-1].elements[0].text = `*작업자:* <@${body.user.id}>`;
-    await client.chat.update({ channel: body.channel.id, ts: body.message.ts, blocks: blocks, token: context.botToken });
+    await client.chat.update({ 
+      channel: body.channel.id, 
+      ts: body.message.ts, 
+      blocks: blocks, 
+      text: "Design Request Form - Status: Completed",
+      token: context.botToken 
+    });
   } catch (error) {
     console.error('[status_completed] 상태 변경 중 오류:', error.data || error);
   }
@@ -371,7 +389,13 @@ app.action('status_needs_revision', async ({ ack, body, client, context }) => {
     const blocks = body.message.blocks;
     updateStatusBlock(blocks, `*Status:*\n*⚠️ Needs Revision*`);
     blocks[blocks.length-1].elements[0].text = `*작업자:* <@${body.user.id}>`;
-    await client.chat.update({ channel: body.channel.id, ts: body.message.ts, blocks: blocks, token: context.botToken });
+    await client.chat.update({ 
+      channel: body.channel.id, 
+      ts: body.message.ts, 
+      blocks: blocks, 
+      text: "Design Request Form - Status: Needs Revision",
+      token: context.botToken 
+    });
   } catch (error) {
     console.error('[status_needs_revision] 상태 변경 중 오류:', error.data || error);
   }
