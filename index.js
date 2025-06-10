@@ -28,6 +28,11 @@ async function translateText(text, targetLang) {
   if (!text || text.trim() === '') {
     return "The system seems to be missing the text that needs translation. Could you please provide the text?";
   }
+  // 추가: 입력이 단일 단어이고 고정 번역 딕셔너리에 있는 경우, 해당 영어 번역을 반환
+  const trimmedText = text.trim();
+  if (fixedTranslations[trimmedText]) {
+    return fixedTranslations[trimmedText];
+  }
   const res = await axios.post(
     'https://api.openai.com/v1/chat/completions',
     {
