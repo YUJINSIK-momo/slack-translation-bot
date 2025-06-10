@@ -25,7 +25,7 @@ jobs:
       with:
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ap-northeast-2  # 서울 리전
+        aws-region: ap-northeast-1  # 도쿄 리전
 
     - name: Deploy to EB
       uses: einaregilsson/beanstalk-deploy@v20
@@ -35,7 +35,7 @@ jobs:
         application_name: ${{ secrets.EB_APPLICATION_NAME }}
         environment_name: ${{ secrets.EB_ENVIRONMENT_NAME }}
         version_label: ${{ github.sha }}
-        region: ap-northeast-2
+        region: ap-northeast-1
         deployment_package: ./
         use_existing_version_if_available: true
         wait_for_deployment: true 
