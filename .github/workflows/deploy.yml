@@ -7,6 +7,7 @@ on:
 
 jobs:
   deploy:
+    environment: slack-bot
     runs-on: ubuntu-latest
     
     steps:
