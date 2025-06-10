@@ -25,6 +25,9 @@ function highlightWord(text, word) {
 
 // OpenAI 번역 호출 함수
 async function translateText(text, targetLang) {
+  if (!text || text.trim() === '') {
+    return "The system seems to be missing the text that needs translation. Could you please provide the text?";
+  }
   const res = await axios.post(
     'https://api.openai.com/v1/chat/completions',
     {
@@ -177,6 +180,13 @@ function preprocessFixedWords(text) {
       idx++;
     }
   }
+  // 추가: ｟｠ 안의 텍스트를 플레이스홀더로 대체
+  replaced = replaced.replace(/｟([^｟｠]*)｠/g, (match, p1) => {
+    const ph = `__FIXED_${idx}__`;
+    placeholders[ph] = match;
+    idx++;
+    return ph;
+  });
   return { replaced, placeholders };
 }
 
