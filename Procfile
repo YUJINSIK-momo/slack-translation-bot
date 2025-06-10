@@ -1,1 +1,1 @@
-web: node JINSIK/index.js 
+web: node index.js 
