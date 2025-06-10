@@ -121,7 +121,7 @@ const fixedTranslations = {
   "진핑크": "Vivid Pink",
   "진자주": "Dark Wine Red",
   "골드": "Gold",
-  "물색": "T-Turquoise Blue",
+  "물색": "E-Turquoise Blue",
   "청록": "Blue Green",
   "비취": "Emerald Green",
   "옥색": "Mint green",
