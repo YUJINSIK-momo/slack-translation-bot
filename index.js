@@ -174,22 +174,22 @@ function applyFixedTranslations(text) {
 function preprocessFixedWords(text) {
   let replaced = text;
   const placeholders = {};
-  let idx = 0;
-  // 긴 단어부터 우선 치환
+  let colorIdx = 0, keepIdx = 0;
+  // 고정 번역(색상 등)
   const sorted = Object.entries(fixedTranslations).sort((a, b) => b[0].length - a[0].length);
   for (const [kor, eng] of sorted) {
     if (replaced.includes(kor)) {
-      const ph = `[[[FIXED_${idx}]]]`;
+      const ph = `[[[FIXED_COLOR_${colorIdx}]]]`;
       replaced = replaced.replace(new RegExp(kor, 'g'), ph);
       placeholders[ph] = eng;
-      idx++;
+      colorIdx++;
     }
   }
-  // 추가: ｟｠ 안의 텍스트를 플레이스홀더로 대체
+  // ｟...｠ 플레이스홀더
   replaced = replaced.replace(/｟([^｟｠]*)｠/g, (match, p1) => {
-    const ph = `[[[FIXED_${idx}]]]`;
+    const ph = `[[[FIXED_KEEP_${keepIdx}]]]`;
     placeholders[ph] = match;
-    idx++;
+    keepIdx++;
     return ph;
   });
   return { replaced, placeholders };
