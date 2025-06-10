@@ -179,7 +179,7 @@ function preprocessFixedWords(text) {
   const sorted = Object.entries(fixedTranslations).sort((a, b) => b[0].length - a[0].length);
   for (const [kor, eng] of sorted) {
     if (replaced.includes(kor)) {
-      const ph = `__FIXED_${idx}__`;
+      const ph = `[[[FIXED_${idx}]]]`;
       replaced = replaced.replace(new RegExp(kor, 'g'), ph);
       placeholders[ph] = eng;
       idx++;
@@ -187,7 +187,7 @@ function preprocessFixedWords(text) {
   }
   // 추가: ｟｠ 안의 텍스트를 플레이스홀더로 대체
   replaced = replaced.replace(/｟([^｟｠]*)｠/g, (match, p1) => {
-    const ph = `__FIXED_${idx}__`;
+    const ph = `[[[FIXED_${idx}]]]`;
     placeholders[ph] = match;
     idx++;
     return ph;
