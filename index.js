@@ -310,9 +310,32 @@ app.event('message', async ({ event, client, context, say }) => {
     } else {
       // 양식이 아니면 전체 메시지 번역만
       const translated = await translateText(text, targetLang);
+      const isThreadReply = !!event.thread_ts;
+      // Block Kit 스타일 번역 메시지
+      const blocks = [
+        {
+          type: "context",
+          elements: [
+            {
+              type: "mrkdwn",
+              text: ":robot_face: *Auto Translator Bot* _(by GPT-4)_"
+            }
+          ]
+        },
+        { type: "divider" },
+        {
+          type: "section",
+          text: {
+            type: "mrkdwn",
+            text: `*번역 결과*\n> ${translated}`
+          }
+        }
+      ];
       await client.chat.postMessage({
         channel: event.channel,
-        text: translated,
+        text: `🌐 번역 결과: ${translated}`,
+        blocks,
+        thread_ts: isThreadReply ? event.thread_ts : undefined,
         token: context.botToken
       });
     }
