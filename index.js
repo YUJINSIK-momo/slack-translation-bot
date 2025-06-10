@@ -163,6 +163,29 @@ function applyFixedTranslations(text) {
   return text;
 }
 
+function preprocessFixedWords(text) {
+  let replaced = text;
+  const placeholders = {};
+  let idx = 0;
+  for (const [kor, eng] of Object.entries(fixedTranslations)) {
+    if (replaced.includes(kor)) {
+      const ph = `__FIXED_${idx}__`;
+      replaced = replaced.replace(new RegExp(kor, 'g'), ph);
+      placeholders[ph] = eng;
+      idx++;
+    }
+  }
+  return { replaced, placeholders };
+}
+
+function postprocessFixedWords(text, placeholders) {
+  let result = text;
+  for (const [ph, eng] of Object.entries(placeholders)) {
+    result = result.replace(new RegExp(ph, 'g'), eng);
+  }
+  return result;
+}
+
 // 메시지 이벤트 처리
 app.event('message', async ({ event, client, context, say }) => {
   try {
@@ -201,14 +224,18 @@ app.event('message', async ({ event, client, context, say }) => {
     if (isForm) {
       // 팀명은 번역하지 않고 그대로 사용
       // 주요/세부 요청사항 각 줄별로 숫자만 있는 줄은 번역하지 않음, 빈 줄은 제외
-      const mainLines = main.split('\n').map(applyFixedTranslations);
-      const detailLines = detail.split('\n').map(applyFixedTranslations);
+      const mainLines = main.split('\n');
+      const detailLines = detail.split('\n');
+      // 각 줄별로 플레이스홀더 적용
+      const mainPre = mainLines.map(preprocessFixedWords);
+      const detailPre = detailLines.map(preprocessFixedWords);
       const [mainTArr, detailTArr] = await Promise.all([
-        translateLinesPreserveNumbers(mainLines, targetLang),
-        translateLinesPreserveNumbers(detailLines, targetLang)
+        Promise.all(mainPre.map(async ({ replaced }) => await translateText(replaced, targetLang))),
+        Promise.all(detailPre.map(async ({ replaced }) => await translateText(replaced, targetLang)))
       ]);
-      const mainList = mainTArr.filter(line => line.trim() !== '');
-      const detailList = detailTArr.filter(line => line.trim() !== '');
+      // 번역 후 플레이스홀더 복원
+      const mainList = mainTArr.map((t, i) => postprocessFixedWords(t, mainPre[i].placeholders)).filter(line => line.trim() !== '');
+      const detailList = detailTArr.map((t, i) => postprocessFixedWords(t, detailPre[i].placeholders)).filter(line => line.trim() !== '');
 
       // 특정 단어가 포함된 줄은 번역하지 않고 빨간색으로 강조
       const highlightedMainList = mainList.map(line => {
@@ -377,8 +404,9 @@ app.event('message', async ({ event, client, context, say }) => {
       }
     } else {
       // 양식이 아니면 전체 메시지 번역만
-      const preprocessedText = applyFixedTranslations(text);
-      const translated = await translateText(preprocessedText, targetLang);
+      const { replaced, placeholders } = preprocessFixedWords(text);
+      const translated = await translateText(replaced, targetLang);
+      const final = postprocessFixedWords(translated, placeholders);
       const isThreadReply = !!event.thread_ts;
       // 번역 방향에 따라 결과 제목 다르게
       const isKoreanToEnglish = isKorean(text);
@@ -399,13 +427,13 @@ app.event('message', async ({ event, client, context, say }) => {
           type: "section",
           text: {
             type: "mrkdwn",
-            text: `${resultTitle}\n> ${translated}`
+            text: `${resultTitle}\n> ${final}`
           }
         }
       ];
       await client.chat.postMessage({
         channel: event.channel,
-        text: `🌐 번역 결과: ${translated}`,
+        text: `🌐 번역 결과: ${final}`,
         blocks,
         thread_ts: isThreadReply ? event.thread_ts : undefined,
         token: context.botToken
