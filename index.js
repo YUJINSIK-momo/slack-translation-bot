@@ -167,7 +167,9 @@ function preprocessFixedWords(text) {
   let replaced = text;
   const placeholders = {};
   let idx = 0;
-  for (const [kor, eng] of Object.entries(fixedTranslations)) {
+  // 긴 단어부터 우선 치환
+  const sorted = Object.entries(fixedTranslations).sort((a, b) => b[0].length - a[0].length);
+  for (const [kor, eng] of sorted) {
     if (replaced.includes(kor)) {
       const ph = `__FIXED_${idx}__`;
       replaced = replaced.replace(new RegExp(kor, 'g'), ph);
