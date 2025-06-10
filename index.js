@@ -95,6 +95,74 @@ async function translateLinesPreserveNumbers(lines, targetLang) {
   );
 }
 
+// 고정 번역 딕셔너리
+const fixedTranslations = {
+  "연챠콜": "Light Charcoal",
+  "챠콜": "Charcoal",
+  "검정": "Black",
+  "딥챠콜": "Deep Charcoal",
+  "연회색": "Light Gray",
+  "회색": "Gray",
+  "진회색": "Dark Gray",
+  "은색": "Silver",
+  "백색": "White",
+  "오프화이트": "Off White",
+  "아이보리": "Ivory",
+  "모카": "Mocha",
+  "라이트 오렌지": "Light Orange",
+  "진핑크": "Vivid Pink",
+  "진자주": "Dark Wine Red",
+  "골드": "Gold",
+  "물색": "T-Turquoise Blue",
+  "청록": "Blue Green",
+  "비취": "Emerald Green",
+  "옥색": "Mint green",
+  "초록": "Green",
+  "핑크": "Pink",
+  "라이트 핑크": "Light Pink",
+  "연다홍": "Light Red",
+  "올리브": "Olive",
+  "코발트": "Cobalt Blue",
+  "E물색": "E-Turquoise Blue",
+  "연코발트": "Light Cobalt Blue",
+  "공군": "Gray Blue",
+  "중소라": "Sky Blue",
+  "E진소라": "E-Deep Sky Blue",
+  "진소라": "Deep Sky Blue",
+  "P-블루": "P-Blue",
+  "보라": "Purple",
+  "E보라": "E-Purple",
+  "가지": "Dark Purple",
+  "커피": "Coffee",
+  "밤색": "Brown",
+  "NC골드": "Champagne Gold",
+  "베이지": "Beige",
+  "연소라": "Light Sky Blue",
+  "연두": "Yellow Green",
+  "진수박": "Moss Green",
+  "수박": "Dark Green",
+  "오렌지": "Orange",
+  "진오렌지": "Dark Orange",
+  "진다홍": "Dark Red",
+  "다홍": "Red",
+  "E자주": "E-Wine Red",
+  "자주": "Wine Red",
+  "진곤색": "Dark navy",
+  "연곤색": "Royal Blue",
+  "곤색": "Navy",
+  "북청": "Navy blue",
+  "로얄": "Royal Blue",
+  "개나리": "Lemon Yellow",
+  "노랑": "Yellow"
+};
+
+function applyFixedTranslations(text) {
+  for (const [kor, eng] of Object.entries(fixedTranslations)) {
+    text = text.replace(new RegExp(kor, 'g'), eng);
+  }
+  return text;
+}
+
 // 메시지 이벤트 처리
 app.event('message', async ({ event, client, context, say }) => {
   try {
@@ -133,8 +201,8 @@ app.event('message', async ({ event, client, context, say }) => {
     if (isForm) {
       // 팀명은 번역하지 않고 그대로 사용
       // 주요/세부 요청사항 각 줄별로 숫자만 있는 줄은 번역하지 않음, 빈 줄은 제외
-      const mainLines = main.split('\n');
-      const detailLines = detail.split('\n');
+      const mainLines = main.split('\n').map(applyFixedTranslations);
+      const detailLines = detail.split('\n').map(applyFixedTranslations);
       const [mainTArr, detailTArr] = await Promise.all([
         translateLinesPreserveNumbers(mainLines, targetLang),
         translateLinesPreserveNumbers(detailLines, targetLang)
@@ -309,7 +377,8 @@ app.event('message', async ({ event, client, context, say }) => {
       }
     } else {
       // 양식이 아니면 전체 메시지 번역만
-      const translated = await translateText(text, targetLang);
+      const preprocessedText = applyFixedTranslations(text);
+      const translated = await translateText(preprocessedText, targetLang);
       const isThreadReply = !!event.thread_ts;
       // 번역 방향에 따라 결과 제목 다르게
       const isKoreanToEnglish = isKorean(text);
