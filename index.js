@@ -311,6 +311,9 @@ app.event('message', async ({ event, client, context, say }) => {
       // 양식이 아니면 전체 메시지 번역만
       const translated = await translateText(text, targetLang);
       const isThreadReply = !!event.thread_ts;
+      // 번역 방향에 따라 결과 제목 다르게
+      const isKoreanToEnglish = isKorean(text);
+      const resultTitle = isKoreanToEnglish ? "*Translation Result*" : "*번역 결과*";
       // Block Kit 스타일 번역 메시지
       const blocks = [
         {
@@ -327,7 +330,7 @@ app.event('message', async ({ event, client, context, say }) => {
           type: "section",
           text: {
             type: "mrkdwn",
-            text: `*번역 결과*\n> ${translated}`
+            text: `${resultTitle}\n> ${translated}`
           }
         }
       ];
