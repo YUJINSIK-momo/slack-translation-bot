@@ -179,7 +179,7 @@ function preprocessFixedWords(text) {
   const sorted = Object.entries(fixedTranslations).sort((a, b) => b[0].length - a[0].length);
   for (const [kor, eng] of sorted) {
     if (replaced.includes(kor)) {
-      const ph = `[[[FIXED_COLOR_${colorIdx}]]]`;
+      const ph = `[[[${colorIdx}]]]`;
       replaced = replaced.replace(new RegExp(kor, 'g'), ph);
       placeholders[ph] = eng;
       colorIdx++;
@@ -187,7 +187,7 @@ function preprocessFixedWords(text) {
   }
   // ｟...｠ 플레이스홀더
   replaced = replaced.replace(/｟([^｟｠]*)｠/g, (match, p1) => {
-    const ph = `[[[FIXED_KEEP_${keepIdx}]]]`;
+    const ph = `[[[${keepIdx}]]]`;
     placeholders[ph] = match;
     keepIdx++;
     return ph;
