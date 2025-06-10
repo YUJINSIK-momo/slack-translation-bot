@@ -175,30 +175,34 @@ function preprocessFixedWords(text) {
   let replaced = text;
   const placeholders = {};
   let colorIdx = 0, keepIdx = 0;
-  // 고정 번역(색상 등)
+  
+  // 먼저 ｟...｠ 플레이스홀더 처리
+  replaced = replaced.replace(/｟([^｟｠]*)｠/g, (match, p1) => {
+    const ph = `[KEEP_${keepIdx}]`;
+    placeholders[ph] = match;
+    keepIdx++;
+    return ph;
+  });
+
+  // 그 다음 고정 번역(색상 등) 처리
   const sorted = Object.entries(fixedTranslations).sort((a, b) => b[0].length - a[0].length);
   for (const [kor, eng] of sorted) {
     if (replaced.includes(kor)) {
-      const ph = `[${colorIdx}]`;
+      const ph = `[COLOR_${colorIdx}]`;
       replaced = replaced.replace(new RegExp(kor, 'g'), ph);
       placeholders[ph] = eng;
       colorIdx++;
     }
   }
-  // ｟...｠ 플레이스홀더
-  replaced = replaced.replace(/｟([^｟｠]*)｠/g, (match, p1) => {
-    const ph = `${keepIdx}`;
-    placeholders[ph] = match;
-    keepIdx++;
-    return ph;
-  });
+  
   return { replaced, placeholders };
 }
 
 function postprocessFixedWords(text, placeholders) {
   let result = text;
-  for (const [ph, eng] of Object.entries(placeholders)) {
-    result = result.replace(new RegExp(ph, 'g'), eng);
+  // 플레이스홀더를 원래 값으로 복원
+  for (const [ph, value] of Object.entries(placeholders)) {
+    result = result.replace(new RegExp(ph, 'g'), value);
   }
   return result;
 }
