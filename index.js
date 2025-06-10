@@ -178,7 +178,7 @@ function preprocessFixedWords(text) {
   
   // 먼저 ｟...｠ 플레이스홀더 처리
   replaced = replaced.replace(/｟([^｟｠]*)｠/g, (match, p1) => {
-    const ph = `[KEEP_${keepIdx}]`;
+    const ph = `__KEEP_${keepIdx}__`;
     placeholders[ph] = match;
     keepIdx++;
     return ph;
@@ -188,7 +188,7 @@ function preprocessFixedWords(text) {
   const sorted = Object.entries(fixedTranslations).sort((a, b) => b[0].length - a[0].length);
   for (const [kor, eng] of sorted) {
     if (replaced.includes(kor)) {
-      const ph = `[COLOR_${colorIdx}]`;
+      const ph = `__COLOR_${colorIdx}__`;
       replaced = replaced.replace(new RegExp(kor, 'g'), ph);
       placeholders[ph] = eng;
       colorIdx++;
@@ -200,8 +200,11 @@ function preprocessFixedWords(text) {
 
 function postprocessFixedWords(text, placeholders) {
   let result = text;
-  // 플레이스홀더를 원래 값으로 복원
-  for (const [ph, value] of Object.entries(placeholders)) {
+  // 플레이스홀더를 원래 값으로 복원 (긴 플레이스홀더부터 처리)
+  const sortedPlaceholders = Object.entries(placeholders)
+    .sort((a, b) => b[0].length - a[0].length);
+  
+  for (const [ph, value] of sortedPlaceholders) {
     result = result.replace(new RegExp(ph, 'g'), value);
   }
   return result;
